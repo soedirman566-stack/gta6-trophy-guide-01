@@ -1,0 +1,122 @@
+{
+ "title": "Roadmap to the Platinum",
+ "note": "Built from the official trophy descriptions: the story in order with the missable trophies flagged in their stages, then the stranger strands, then the activity, collectible and money cleanups, then the platinum itself.",
+ "stages": [
+  {
+   "stage": 1,
+   "title": "Welcome to Leonida",
+   "advice": "Play the opening mission and Chapter 1 as they come, and sample every type of activity once while the map is new: it starts the activity count early and teaches you where the ranges, races and arcades live.",
+   "trophies": [
+    "Just Like Paradise",
+    "Paradise Lost",
+    "Master of None",
+    "In The Beginning…"
+   ],
+   "missables": []
+  },
+  {
+   "stage": 2,
+   "title": "The Story Campaign",
+   "advice": "Chapters 2 to 4 and the named story missions. Two trophies need your attention while you are here and cannot be tidied up later: the unscheduled departure at VCIA, and the tracked story choices behind Actions Speak Louder. Engage with every choice prompt the story offers.",
+   "trophies": [
+    "T**s Ass Drug Money",
+    "Vice City, Baby!",
+    "Top Of The World, Ma",
+    "Trust",
+    "Break the Bank",
+    "Family Matters",
+    "DWNFALL",
+    "Hi-Jacked",
+    "Snow Storm",
+    "Catch Me If You Can",
+    "Actions Speak Louder"
+   ],
+   "missables": [
+    "Catch Me If You Can",
+    "Actions Speak Louder"
+   ]
+  },
+  {
+   "stage": 3,
+   "title": "The Finale and 100%",
+   "advice": "Finish the final mission, then work the in-game 100% checklist down to zero. A Long Road is the real endgame: everything in the later stages feeds it.",
+   "trophies": [
+    "You Gotta Know When to Get Off",
+    "A Long Road"
+   ],
+   "missables": []
+  },
+  {
+   "stage": 4,
+   "title": "Strangers & Freaks",
+   "advice": "Finish all eight stranger strands across Leonida, including each character's final mission. Take Bret's unique-animal hunt the moment it is offered: a unique animal does not wait around.",
+   "trophies": [
+    "Road to Rehabilitation",
+    "This Was No Boat Accident",
+    "The Lone Rider",
+    "Strangers & Freaks",
+    "Supply & Demand",
+    "Spin On This!",
+    "Fair Game"
+   ],
+   "missables": [
+    "Fair Game"
+   ]
+  },
+  {
+   "stage": 5,
+   "title": "Activities, Stunts & Challenges",
+   "advice": "The skill-based cleanup: shooting-range golds, drone races, 250 stunts, robberies and combat feats. Spread these out; several are long grinds that go faster in short sessions.",
+   "trophies": [
+    "Cunning Stunts",
+    "The Shootist",
+    "Top Fun",
+    "Earn Cash, Not Kudos",
+    "Baited My Tackle",
+    "Stick Fiddler",
+    "One Last Thing",
+    "Hot Together",
+    "Retail Therapy",
+    "Gunslinger",
+    "Challenging Tank",
+    "Sneakthief",
+    "Maximum Withdrawal",
+    "A Classic Blitz Play",
+    "Capital Offense",
+    "Let’s Go Bowling",
+    "Personal Best",
+    "Bad Luck, I Guess",
+    "Ten Pin"
+   ],
+   "missables": []
+  },
+  {
+   "stage": 6,
+   "title": "Collectibles, Exploration & Money",
+   "advice": "The state-wide sweep: card sets, WAiNK spots, meditation spots, vehicle discoveries, every area of Leonida, and the cash targets for laundering, spending and garages.",
+   "trophies": [
+    "Positive Mental Attitude",
+    "Don't Touch My Deck",
+    "You WAiNKer!",
+    "Whip It Good",
+    "The Goodtime State",
+    "Pest Control",
+    "The Truth Is Out There",
+    "Dime on the Dollar",
+    "Treat Yo Self",
+    "Little Boxes",
+    "On the Spot"
+   ],
+   "missables": []
+  },
+  {
+   "stage": 7,
+   "title": "Leonida Legend",
+   "advice": "When the other 54 trophies are earned, the platinum is awarded automatically. Congratulations, you are a Leonida Legend.",
+   "trophies": [
+    "Vice Got a Price!"
+   ],
+   "missables": []
+  }
+ ]
+}

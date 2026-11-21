@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leonida Trophy Guide — GTA VI Trophy Tracker &amp; Roadmap</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">L</div>
+    <div>
+      <h1>Leonida Trophy Guide</h1>
+      <p class="tagline">Grand Theft Auto VI · PlayStation 5 · all 55 trophies, one roadmap to the platinum</p>
+    </div>
+  </div>
+  <div class="progress-box">
+    <svg class="ring" viewBox="0 0 84 84" width="84" height="84" role="img" aria-label="Overall progress">
+      <circle class="ring-track" cx="42" cy="42" r="36"></circle>
+      <circle class="ring-fill" id="ring-fill" cx="42" cy="42" r="36"></circle>
+      <text class="ring-text" id="ring-text" x="42" y="47" text-anchor="middle">0%</text>
+    </svg>
+    <div class="grade-counts" id="grade-counts"></div>
+    <p class="progress-line" id="progress-line">0 of 55 earned</p>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Views">
+  <button type="button" class="tab active" data-view="checklist">Checklist</button>
+  <button type="button" class="tab" data-view="roadmap">Roadmap</button>
+  <button type="button" class="tab" data-view="missables">Missables <span class="tab-badge" id="missable-count"></span></button>
+</nav>
+
+<section class="toolbar" id="toolbar">
+  <div class="chips" id="kind-chips" role="group" aria-label="Filter by kind"></div>
+  <div class="toolbar-row">
+    <label class="field">Grade
+      <select id="grade-filter">
+        <option value="all">All grades</option>
+        <option value="platinum">Platinum</option>
+        <option value="gold">Gold</option>
+        <option value="silver">Silver</option>
+        <option value="bronze">Bronze</option>
+      </select>
+    </label>
+    <label class="field grow">Search
+      <input id="search" type="search" placeholder="Search trophies…">
+    </label>
+    <label class="switch"><input type="checkbox" id="hide-earned"> Hide earned</label>
+    <label class="switch"><input type="checkbox" id="spoiler-toggle"> Spoiler protection</label>
+  </div>
+  <div class="toolbar-row actions">
+    <button type="button" id="export-btn">Export progress</button>
+    <label class="import-label">Import progress <input id="import-file" type="file" accept="application/json,.json"></label>
+    <button type="button" id="reset-btn" class="danger">Reset</button>
+    <span class="hint">Progress is saved in this browser. Spoiler protection hides unearned story trophies until you earn them.</span>
+  </div>
+</section>
+
+<main>
+  <section id="view-checklist" class="view">
+    <div class="checklist-layout">
+      <ul class="trophy-list" id="trophy-list"></ul>
+      <aside class="detail" id="detail" aria-live="polite"></aside>
+    </div>
+    <p class="empty" id="empty-msg" hidden>No trophies match the current filters.</p>
+  </section>
+
+  <section id="view-roadmap" class="view" hidden>
+    <div id="roadmap-root"></div>
+  </section>
+
+  <section id="view-missables" class="view" hidden>
+    <p class="view-intro">These trophies can be missed. Each one is flagged from its official description — a one-time event, a story point of no return, or a choice that cannot be revisited — and its guide says when to act.</p>
+    <div id="missables-root"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <p>Trophy names, descriptions and grades are the official PlayStation list for Grand Theft Auto VI, as published and as listed by Exophase and PSNProfiles. Guides, classifications, missable flags and the roadmap are this guide's own words. This is a fan-made tool and is not affiliated with Rockstar Games or PlayStation.</p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+// Builds the enriched app/data/trophies.json and app/data/roadmap.json for the Leonida Trophy Guide.
+//
+// It reads the repo's current app/data/trophies.json (the official 55-trophy list exactly as the kit
+// starter carries it: name, description and grade as PlayStation publishes them) and writes it back
+// with, for every trophy, four things this entry adds in its own words and judgement:
+//   kind     - story, collectibles, activities or online (the primary type, read from the description)
+//   missable - true only where the official description implies a one-time event, a story point of no
+//              return, or a choice that cannot be revisited
+//   stage    - the roadmap stage the trophy belongs to (see STAGES below)
+//   guide    - an original guide: what to do, where and how as far as the official description
+//              supports it, and when it can be missed; every guide ends with its sources line.
+// It also derives "hidden" (the trophies PlayStation keeps hidden until earned: the story set and the
+// secret set) and "count" (the target PlayStation tracks, where the description carries one).
+// Run: node tools-build-data.mjs
+
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const dataDir = join(here, 'app', 'data');
+const SOURCES = 'Sources: Exophase (GTA VI trophy list), PSNProfiles (GTA VI trophy guide), PowerPyx (GTA VI trophy guide & roadmap).';
+
+// Per-trophy classification, keyed by the official list's id.
+// kind: s=story, c=collectibles, a=activities. missable and hidden are booleans, count is the tracked target.
+const META = {
+  1:  { kind: 'story',       stage: 7 },
+  2:  { kind: 'story',       stage: 1, hidden: true },
+  3:  { kind: 'story',       stage: 1, hidden: true },
+  4:  { kind: 'story',       stage: 2, hidden: true },
+  5:  { kind: 'story',       stage: 2, hidden: true },
+  6:  { kind: 'story',       stage: 2, hidden: true },
+  7:  { kind: 'story',       stage: 3, hidden: true },
+  8:  { kind: 'story',       stage: 2, hidden: true },
+  9:  { kind: 'story',       stage: 2, hidden: true },
+  10: { kind: 'story',       stage: 2, hidden: true },
+  11: { kind: 'story',       stage: 2, hidden: true },
+  12: { kind: 'story',       stage: 2, hidden: true },
+  13: { kind: 'story',       stage: 2, hidden: true },
+  14: { kind: 'activities',  stage: 3 },
+  15: { kind: 'activities',  stage: 5, count: 250 },
+  16: { kind: 'activities',  stage: 1, count: 9 },
+  17: { kind: 'activities',  stage: 5, count: 42 },
+  18: { kind: 'activities',  stage: 5, count: 14 },
+  19: { kind: 'activities',  stage: 5, count: 20 },
+  20: { kind: 'activities',  stage: 5, hidden: true },
+  21: { kind: 'activities',  stage: 5 },
+  22: { kind: 'story',       stage: 4, hidden: true },
+  23: { kind: 'story',       stage: 4, hidden: true },
+  24: { kind: 'story',       stage: 4, hidden: true },
+  25: { kind: 'story',       stage: 4, count: 8 },
+  26: { kind: 'story',       stage: 4, hidden: true },
+  27: { kind: 'story',       stage: 4, hidden: true },
+  28: { kind: 'collectibles', stage: 6, count: 18 },
+  29: { kind: 'story',       stage: 4, missable: true, hidden: true },
+  30: { kind: 'collectibles', stage: 6, count: 3 },
+  31: { kind: 'collectibles', stage: 6, count: 100 },
+  32: { kind: 'activities',  stage: 5, count: 50 },
+  33: { kind: 'activities',  stage: 5 },
+  34: { kind: 'activities',  stage: 5 },
+  35: { kind: 'collectibles', stage: 6, count: 100 },
+  36: { kind: 'activities',  stage: 5, count: 5 },
+  37: { kind: 'activities',  stage: 2, missable: true, hidden: true },
+  38: { kind: 'activities',  stage: 5, hidden: true },
+  39: { kind: 'activities',  stage: 5 },
+  40: { kind: 'activities',  stage: 5, count: 5 },
+  41: { kind: 'activities',  stage: 5 },
+  42: { kind: 'collectibles', stage: 6, count: 52 },
+  43: { kind: 'activities',  stage: 6, count: 9 },
+  44: { kind: 'activities',  stage: 1, hidden: true },
+  45: { kind: 'activities',  stage: 5, hidden: true },
+  46: { kind: 'activities',  stage: 5, hidden: true },
+  47: { kind: 'activities',  stage: 5, hidden: true },
+  48: { kind: 'story',       stage: 2, missable: true, count: 500, hidden: true },
+  49: { kind: 'activities',  stage: 5, hidden: true },
+  50: { kind: 'activities',  stage: 6, hidden: true },
+  51: { kind: 'activities',  stage: 5 },
+  52: { kind: 'activities',  stage: 6, count: 250000 },
+  53: { kind: 'activities',  stage: 6, count: 100000 },
+  54: { kind: 'collectibles', stage: 6, count: 8 },
+  55: { kind: 'activities',  stage: 6, count: 10 },
+};
+
+// The roadmap to the platinum, in the order a first playthrough should take the game.
+const STAGES = [
+  { stage: 1, title: 'Welcome to Leonida', advice: 'Play the opening mission and Chapter 1 as they come, and sample every type of activity once while the map is new: it starts the activity count early and teaches you where the ranges, races and arcades live.' },
+  { stage: 2, title: 'The Story Campaign', advice: 'Chapters 2 to 4 and the named story missions. Two trophies need your attention while you are here and cannot be tidied up later: the unscheduled departure at VCIA, and the tracked story choices behind Actions Speak Louder. Engage with every choice prompt the story offers.' },
+  { stage: 3, title: 'The Finale and 100%', advice: 'Finish the final mission, then work the in-game 100% checklist down to zero. A Long Road is the real endgame: everything in the later stages feeds it.' },
+  { stage: 4, title: 'Strangers & Freaks', advice: 'Finish all eight stranger strands across Leonida, including each character\'s final mission. Take Bret\'s unique-animal hunt the moment it is offered: a unique animal does not wait around.' },
+  { stage: 5, title: 'Activities, Stunts & Challenges', advice: 'The skill-based cleanup: shooting-range golds, drone races, 250 stunts, robberies and combat feats. Spread these out; several are long grinds that go faster in short sessions.' },
+  { stage: 6, title: 'Collectibles, Exploration & Money', advice: 'The state-wide sweep: card sets, WAiNK spots, meditation spots, vehicle discoveries, every area of Leonida, and the cash targets for laundering, spending and garages.' },
+  { stage: 7, title: 'Leonida Legend', advice: 'When the other 54 trophies are earned, the platinum is awarded automatically. Congratulations, you are a Leonida Legend.' },
+];
+
+// The guides, in this entry's own words, keyed by id. Each is grounded in the official description:
+// where the description names no place or step, the guide says what the description states and what to
+// watch for, and invents nothing. The sources line is appended by the builder below.
+const GUIDES = {
+  1: 'This is the platinum, and it asks for everything else on the list: earn the other 54 trophies and it is awarded automatically, with no extra task of its own. Plan the run with the roadmap in this guide: story first with the missables watched, then strands, then the activity and collectible cleanups. Because it simply mirrors the full list, your overall percentage here is the only progress bar that matters.',
+  2: 'Gone Fishing is the opening mission of the game, so this unlocks by simply starting the story and playing the first mission through to its end. There is nothing to prepare and no way to skip it: it is the first trophy almost every player earns. If it has not popped, you have not finished the opening yet.',
+  3: 'Finish every mission of Chapter 1 and this chapter trophy unlocks at its close. Story chapters cannot be missed by playing normally, so just keep following the main markers. It pairs naturally with Just Like Paradise, which covers the opening mission inside this chapter.',
+  4: 'Finish every mission of Chapter 2 to earn this chapter trophy. As with the other chapter trophies it is a pure story-progress award: follow the main story markers until the chapter closes. Nothing in the official description suggests a side requirement, so no detours are needed.',
+  5: 'Finish every mission of Chapter 3 to earn this chapter trophy. Keep pushing the main story; the trophy is awarded for the chapter as a whole rather than for any single mission. It cannot be missed by playing the story through.',
+  6: 'Finish every mission of Chapter 4 to earn this chapter trophy. By this point the map and most systems are open, but the trophy itself only asks for the chapter\'s missions to be completed. Story progress alone unlocks it.',
+  7: 'Complete the final mission of the story for this gold trophy. It is the natural end of the campaign, reached by playing every chapter through. Before you start the finale, glance at the two missable warnings in this guide (the VCIA departure and the tracked story choices), because the endgame is the last comfortable moment to have them done.',
+  8: 'Complete the story mission named Breakfast Run. It is one of the named missions inside the campaign, so it unlocks in the course of a normal playthrough when you finish that mission. No separate setup is described; follow the story until Breakfast Run is offered and complete it.',
+  9: 'Complete the story mission named The Cartel Heist. Heists are set-piece missions, so expect a structured job rather than free-roam work, and finish it as part of the campaign. The trophy is awarded for completing the mission itself, not for any particular approach or take.',
+  10: 'Complete the story mission named Child\'s Play. Like the other named-mission trophies, this is earned by playing the campaign until the mission appears and finishing it. The official description names the mission only, so no optional objective is required.',
+  11: 'Complete the story mission named Headliners. Play the main story until Headliners is offered, then finish the mission. It is a story-progress trophy in everything but name, and cannot be earned outside that mission.',
+  12: 'Complete the story mission named VCIA Takedown. The initials point at Vice City\'s airport, and this mission matters twice: finishing it earns this trophy, and the same location hosts the missable Catch Me If You Can. While the story has you at VCIA, keep an eye out for the chance to make an unscheduled departure before the mission window closes.',
+  13: 'Complete the story mission named Operation Savage Glory. Play the campaign through until this mission appears and finish it. The description names the mission alone, so completing it in the story is the whole requirement.',
+  14: 'Attain 100% completion for this gold trophy: the game\'s own completion checklist, which spans the story, strands, activities, collectibles and exploration covered across this guide. Treat it as the sum of almost everything else here rather than a separate task, and use the in-game completion percentage as your tracker. Expect it to be one of the last trophies you earn, just before the platinum.',
+  15: 'Complete 250 stunts. Stunt opportunities are the jumps and set-piece moments scattered across Leonida; the counter is tracked, so every stunt you land banks progress. Work them in as you travel rather than grinding at the end, and use the counter in this tracker to pace the 250. Repeatable stunt spots are the efficient route once you find a reliable one.',
+  16: 'Try each type of activity once: the official list tracks 9 activity types, and a single attempt at each is enough. Do this early, in roadmap stage 1, because it doubles as a tour of the systems the grind trophies use later: ranges, races, fishing, arcades and the rest. The tracker counter here goes to 9.',
+  17: 'Earn a gold medal in all Shooting Range challenges, 42 of them, for this silver trophy. Learn each range\'s target pattern first, then chase golds one range at a time; consistency beats speed on most ranges. This is a pure skill grind with no story gate, so it can be spread across the whole playthrough.',
+  18: 'Win a Top Fun Drone Race at every location: 14 locations in all. You only need a win at each, not a medal sweep, so learn a course with a practice run and then take the win. New locations surface as you explore Leonida, which makes this a natural partner to The Goodtime State.',
+  19: 'Win 20 different races. Different is the key word: repeating one favourite race does not advance the counter, so move around the map and take wins in 20 distinct events. Any race type the game offers counts toward the set, so mix vehicle classes as new races unlock.',
+  20: 'Beat Cal in a fishing challenge. Cal is a character you can challenge at fishing, so find his challenge, learn the fishing timing, and out-catch him. The description names the opponent and the activity only, so expect a head-to-head score challenge rather than a story mission; practice on ordinary fishing first if the challenge allows retries.',
+  21: 'Complete an arcade game: find an arcade cabinet, play one of its games through to completion, and the trophy is yours. Only one full completion is needed, so pick the shortest or easiest cabinet game you find. Arcades are part of the activity set sampled by Master of None.',
+  22: 'Complete the final mission for Andy, which means working Andy\'s stranger strand from its first meeting to its last job. Stranger strands open as you explore and meet their characters; finish each strand you start so its final mission appears. This is one of the strands counted by Strangers & Freaks.',
+  23: 'Complete the final mission for Kenton by following Kenton\'s stranger strand through to its conclusion. As with the other strand finales, the trophy is for the strand\'s last mission specifically, so a strand left half-done earns nothing here. One of the strands counted by Strangers & Freaks.',
+  24: 'Complete the final mission for Billy by playing Billy\'s stranger strand to its end. Keep an eye out for Billy\'s markers as you travel Leonida, and finish the strand once started so the final mission unlocks. One of the strands counted by Strangers & Freaks.',
+  25: 'Complete 8 mission strands for strangers across the state of Leonida, for this silver trophy. The named finales in this guide (Andy, Kenton, Billy, Randy, Tyrone and Bret\'s work among them) are the strands to chase; the counter here tracks all 8. Start strands whenever you meet a stranger so the finales are ready when you begin the stage-4 cleanup.',
+  26: 'Complete the final mission for Randy by working Randy\'s stranger strand from start to finish. The trophy pays out only on the strand\'s final mission, so see the whole strand through. One of the strands counted by Strangers & Freaks.',
+  27: 'Complete the final mission for Tyrone by playing Tyrone\'s stranger strand through to its last mission. Finish what you start: the finale only appears at the end of the strand. One of the strands counted by Strangers & Freaks.',
+  28: 'Meditate at every spot across Leonida: 18 meditation spots in all. These are quiet, fixed locations, so this behaves like a collectible sweep: visit each spot and use its meditation prompt. The counter in this tracker runs to 18; expect the spots to be spread across the whole state, including its far corners.',
+};
+Object.assign(GUIDES, {
+  29: 'Hunt a unique animal for Bret. This one is flagged missable in this guide: the description promises a unique animal, a one-off quarry that exists for Bret\'s hunt and no other, so when Bret offers the hunt, take it and finish it rather than leaving it for later. It belongs to the stranger-strand stage of the roadmap. If the hunt is left unfinished, there may be no second chance at the same animal.',
+  30: 'Complete 3 Collectible Card sets for this silver trophy. Cards are found across Leonida and gathered into sets; the requirement is finished sets, not raw card count, so focus your searching on completing sets one at a time. The tracker counter here counts sets to 3. Expect this to be a long exploration grind alongside the other collectible sweeps.',
+  31: 'WAiNK It at 100 locations for this silver trophy. The description gives the action and the number only: find the WAiNK interaction spots spread across the state and use each one once. With 100 to find, work them in region by region and let the counter here pace you; they pair naturally with exploring all of Leonida for The Goodtime State.',
+  32: 'Complete 50 Challenges. Challenges are the game\'s tracked side objectives, distinct from missions and activities; the counter here runs to 50. Take challenges on as they appear during ordinary play rather than saving them for the end, and check the counter whenever a session ends so the grind never surprises you.',
+  33: 'Lose a 4 star Wanted Level with your partner and escape the heat. Build a four-star wanted level while your partner is with you, then break line of sight and stay hidden until the stars clear, together. The trophy wants the escape completed with the partner present, so do not split up mid-chase. A vehicle swap and a quiet corner of the map make the cooldown far easier.',
+  34: 'Rob 3 shops back-to-back with your partner without losing your Wanted Level. Chain three shop robberies in one continuous wanted run: rob, move fast to the next shop, rob again, and never let the wanted level fully clear in between, because that resets the chain. Plan the three shops close together before you start, and keep your partner with you throughout.',
+  35: 'Discover 100 vehicles. A vehicle is discovered by encountering and using it, so variety is the whole task: drive, ride or commandeer 100 distinct vehicles as you roam Leonida. Traffic variety differs by district and time of day, so rotate neighbourhoods rather than farming one street. The counter here runs to 100.',
+  36: 'Take down 5 enemies in a single use of Combat Focus. Charge the ability, pick a spot where at least five enemies are grouped, trigger Combat Focus once and drop all five before it ends. Crowded firefights during missions are the natural setup; if a use ends at four, the counter for this trophy does not carry over, so choose your moment.',
+  37: 'Make an unscheduled departure at VCIA. This guide flags it missable: VCIA is the airport the story visits in VCIA Takedown, and an unscheduled departure means getting airborne or away from it outside the scripted plan, most plausibly inside that story window. While the mission has you there, look for a usable aircraft or vehicle and leave with it before the mission closes the area off. If you finish the story visit without trying, you may need a replay to get the chance again.',
+  38: 'The official description only says: "Kinda hot in these Rhinos." Rhinos are the game\'s tanks, so this trophy concerns surviving or dealing with a Rhino at close quarters; the description deliberately hides the exact trigger. Watch for Rhinos during heavy wanted levels and late-story set pieces, stay in or near one when the moment comes, and treat any on-screen prompt around it as the cue. Because the trigger is unstated, this guide invents no steps beyond what the description supports.',
+  39: 'Rob a jewelry store without being detected. Pick a jewelry store, go in quietly, take what you can and get out without raising detection: no witnesses alerting, no wanted level from being seen. Scout the store\'s sightlines first and be ready to abandon the take rather than be spotted, since a detected attempt does not count even if you escape.',
+  40: 'Rob 5 Bank Vaults and escape, for this silver trophy. Each vault job must end in a clean escape to count, so plan the exit before you open the vault: vehicle placed, route chosen, heat managed. The counter here runs to 5 successful vault robberies, and failed escapes do not advance it.',
+  41: 'Rob an Armored Truck and escape. Armored trucks are moving targets, so stop or breach the truck, take the money and lose the heat that follows. One successful robbery and escape is the whole requirement; pick a truck on a quiet stretch of road so the escape route stays simple.',
+  42: 'Explore all of Leonida: the official list tracks 52 areas. Exploration registers as you enter and move through each area, so full map coverage is the task: coasts, towns, backcountry and islands included. Use this tracker\'s counter to 52 and treat any long trip as progress; pairing this with the WAiNK spots and meditation spots makes one sweep serve three trophies.',
+  43: 'Rob an Illegal Operation belonging to each gang: 9 gangs in all. Every gang runs illegal operations somewhere in Leonida; rob one operation per gang, not nine of the same one. The counter here tracks gangs to 9, so keep a note of which gangs you have already hit as you travel.',
+  44: 'Enjoy a cocktail with a view on Ocean Beach. This is a flavour trophy: go to Ocean Beach, the game\'s signature shoreline, and have the cocktail the description asks for, somewhere with the view. It costs a few in-game dollars and a quiet minute, and it is easiest early, which is why this guide places it in the opening stage of the roadmap.',
+  45: 'Smash your way out of a vehicle showroom in classic style. Get into a vehicle inside a showroom and drive out through the glass: the description wants the exit done in a vehicle, theatrically. Showrooms exist in the world outside missions, so pick one, take a car from the floor and make the exit clean.',
+  46: 'Follow-through at the Kolt & Associates\' bowling alley. Go to the named bowling alley and bowl, completing the follow-through the description jokes about. It is a small activity trophy: find the alley, play the game it offers, and the visit counts. Pair it with the arcade completion for Stick Fiddler in the same outing if the two are near each other.',
+  47: 'The official description only says: "A partnership with mass appeal." It points at something done with your partner that draws a crowd or an audience, but it names no place, activity or step, so this guide invents none. Watch for partner activities with a public or performance element as you play, try the ones that gather onlookers, and if the trophy pops you will know which moment it meant. It is grouped with the other partner and activity feats in stage 5.',
+  48: 'The official description says choices are made, for better or worse, and PlayStation tracks a count toward 500. This guide flags it missable: story choices are one-time decisions, so the safe play is to engage with every choice the game offers, in missions and in the world, rather than skipping past prompts, because a skipped choice cannot be revisited without replaying. The counter here runs to 500, so steady engagement across the whole story matters more than any single decision.',
+  49: 'The official description only says: "Second time\'s the charm." Read plainly, it asks you to succeed at something on a second attempt after failing it once, but it names no activity, so this guide invents no target. When a challenge, race or task gives you a retry after a failure, take the retry seriously rather than walking away; somewhere in that pattern is this trophy.',
+  50: 'The official description asks: "What the hell just happened?" Witness something strange: an unexplained event or sight somewhere in Leonida. The description names no place or trigger, so this guide invents none; explore off the main roads, especially at night and in the state\'s odd corners, and stop to watch anything that looks out of place. It sits in the exploration stage of the roadmap for that reason.',
+  51: 'Bowl \'em over with a melee drive-by: from a moving vehicle, knock someone down with a melee attack rather than a firearm. Line up a pedestrian target at low speed so the swing connects without stopping the vehicle. One clean knockdown is the whole requirement.',
+  52: 'Earn $250,000 laundering Marked Bills through your contacts. Marked Bills come from criminal work; pass them through your contacts to launder them, and the laundered total is what counts, tracked here to $250,000. Build a steady pipeline rather than saving bills up: rob, collect marked bills, launder, repeat, and let the counter pace the grind.',
+  53: 'Spend $100,000 across all shops. Any shop spending counts toward the total, so vehicles, clothes, weapons, services and property-adjacent purchases all help; the tracker here runs to $100,000. Do not hoard cash for its own sake once your kit is set: spend as you play and this lands on its own late in the run.',
+  54: 'Purchase all garage properties: 8 of them. Garages are bought with in-game money as they become available across Leonida, so this is a money-and-exploration task in one. Buy each garage when you find it rather than saving for a spree, and let the counter here track the 8.',
+  55: 'Register 10 vehicles to the Scooter Bros app. Find the app\'s registration flow, and register vehicles you own or acquire until the counter reaches 10. It pairs naturally with Whip It Good\'s 100 vehicle discoveries: as your vehicle variety grows, keep the registrations up to date so neither counter is left for the endgame.',
+});
+
+// ---- build ----------------------------------------------------------------
+
+const doc = JSON.parse(readFileSync(join(dataDir, 'trophies.json'), 'utf8'));
+const kindNames = { story: 'story', collectibles: 'collectibles', activities: 'activities', online: 'online' };
+
+const trophies = doc.trophies.map((t) => {
+  const meta = META[t.id];
+  if (!meta) throw new Error(`no classification for trophy id ${t.id}`);
+  const body = GUIDES[t.id];
+  if (!body) throw new Error(`no guide for trophy id ${t.id}`);
+  const out = {
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    grade: t.grade,
+    hidden: Boolean(meta.hidden),
+    kind: kindNames[meta.kind],
+    missable: Boolean(meta.missable),
+    stage: meta.stage,
+  };
+  if (meta.count) out.count = meta.count;
+  out.guide = `${body} ${SOURCES}`;
+  return out;
+});
+
+writeFileSync(join(dataDir, 'trophies.json'), JSON.stringify({
+  game: doc.game,
+  platform: doc.platform,
+  list: doc.list,
+  sources: 'Official names, descriptions and grades as PlayStation publishes them, as listed by Exophase and PSNProfiles. Guides, kinds, missable flags and the roadmap are this entry\'s own work.',
+  trophies,
+}, null, 1) + '\n');
+
+const roadmap = {
+  title: 'Roadmap to the Platinum',
+  note: 'Built from the official trophy descriptions: the story in order with the missable trophies flagged in their stages, then the stranger strands, then the activity, collectible and money cleanups, then the platinum itself.',
+  stages: STAGES.map((s) => ({
+    stage: s.stage,
+    title: s.title,
+    advice: s.advice,
+    trophies: trophies.filter((t) => t.stage === s.stage).map((t) => t.name),
+    missables: trophies.filter((t) => t.stage === s.stage && t.missable).map((t) => t.name),
+  })),
+};
+writeFileSync(join(dataDir, 'roadmap.json'), JSON.stringify(roadmap, null, 1) + '\n');
+
+const missableCount = trophies.filter((t) => t.missable).length;
+const hiddenCount = trophies.filter((t) => t.hidden).length;
+console.log(`wrote ${trophies.length} trophies (${missableCount} missable, ${hiddenCount} hidden) and ${roadmap.stages.length} roadmap stages`);
